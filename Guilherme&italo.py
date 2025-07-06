@@ -75,7 +75,7 @@ Cpc2 = 2e-3
 Civ2 = 0.1e-3
 Pr2 = 1.55e7 # Diferente do poço 1
 Lr_poco2 = 500
-GOR2 = 0.12 # Diferente do poço 1
+GOR2 = 0.11 # Diferente do poço 1
 
 # Áreas e Volumes Calculados para Poço 2
 Aw2 = (ca.pi * (Dw2 ** 2)) / 4
