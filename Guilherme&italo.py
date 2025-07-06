@@ -2,7 +2,7 @@ import numpy as np
 import casadi as ca
 import matplotlib.pyplot as plt
 
-
+# testeeeeeeeeeee
 
 # Constantes Fundamentais
 g = 9.81  # Aceleração da gravidade [m/s²]
