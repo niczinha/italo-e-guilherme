@@ -110,7 +110,7 @@ class RiserModel:
         self.u = []
 
         # Injeção inicial para simulação do sistema
-        self.injInit = 2.5
+        self.injInit = 1.6
         self.u0 = [self.injInit]*self.m*self.nU
 
         self.f_modelo = self.createModelo()
@@ -328,7 +328,8 @@ class RiserModel:
     def pIniciais(self):
         # Pontos iniciais para começar a simulação
         u0 = [self.injInit]*self.m*self.nU
-        x0 = np.array([3000, 3000, 800, 800, 6000, 6000, 130, 700])  # Estados iniciais
+        x0 = np.array([1961.8804936, 2017.33517325, 962.04921361, 1042.48337861,
+                           6939.02402957, 6617.93163452, 117.97660766, 795.94318092])  # Estados iniciais
 
         t0 = 1
         tf = 16000

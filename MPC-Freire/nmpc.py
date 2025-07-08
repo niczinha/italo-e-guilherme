@@ -31,9 +31,9 @@ class NMPC:
 
         # TODO: Adicionar restrições de entrada e estado
         self.u_min = np.array([[0], [0]])
-        self.u_max = np.array([[5], [5]])
-        self.dU_min = np.array([[-1], [-1]])
-        self.dU_max = np.array([[1], [1]])
+        self.u_max = np.array([[2], [2]])
+        self.dU_min = np.array([[-0.2], [-0.2]])
+        self.dU_max = np.array([[0.2], [0.2]])
         self.y_min = np.array([[0] for _ in range(nY)])
         self.y_max = np.array([[np.inf] for _ in range(nY)])
     

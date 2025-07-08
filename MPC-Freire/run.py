@@ -37,7 +37,7 @@ NMPC = NMPC(p, m, steps, 2, 8, 2, Q, R, 10, 320)
 iter, Ymk, Ypk, Upk, dU, Ysp, Tempos, dt = NMPC.run()
 
 # Salvando os resultados em um arquivo pickle
-with open('ENGG17 - Introdução à Elevação de Petróleo/results_NMPC.pkl', 'wb') as f:
+with open('MPC-Freire/results_NMPC.pkl', 'wb') as f:
     pickle.dump((
         iter,
         Ymk,

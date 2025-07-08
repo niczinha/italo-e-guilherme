@@ -5,7 +5,7 @@ import pickle
 
 def plot_results(iter, Ymk, Ypk, Upk, dU, Ysp, Tempos, dt):
     # Verifica se o diretório 'plots' existe, caso contrário, cria
-    imagesPath = os.path.join(os.getcwd(), 'ENGG17 - Introdução à Elevação de Petróleo/plots')
+    imagesPath = os.path.join(os.getcwd(), 'MPC-Freire/plots')
     os.makedirs(imagesPath, exist_ok=True)
 
     # Plot das entradas e pressões de fundo de poço
@@ -43,7 +43,7 @@ def plot_results(iter, Ymk, Ypk, Upk, dU, Ysp, Tempos, dt):
     plt.tight_layout()
     plt.savefig(os.path.join(imagesPath, "saida.png"))
 
-with open('ENGG17 - Introdução à Elevação de Petróleo/results_NMPC.pkl', 'rb') as f:
+with open('MPC-Freire/results_NMPC.pkl', 'rb') as f:
     iter, Ymk, Ypk, Upk, dU, Ysp, Tempos, dt = pickle.load(f)
 
 plot_results(iter, Ymk, Ypk, Upk, dU, Ysp, Tempos, dt)
