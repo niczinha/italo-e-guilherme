@@ -26,7 +26,7 @@ class NMPC:
         self.sim_mf = sim.RiserModel(1, 1, steps, nY, nX, nU, dt)
         
         # Setpoints
-        self.SPList = [[9e6, 9.5e6], [9.25e6, 9.25e6], [9.1e6, 9.4e6], [9.3e6, 9.2e6]]
+        self.SPList = [[9.1e6, 9.45e6], [9e6, 9.3e6], [9.12e6, 9.4e6], [9.05e6, 9.25e6]]
         self.y_sp = self.SPList[0]
 
         # TODO: Adicionar restrições de entrada e estado
