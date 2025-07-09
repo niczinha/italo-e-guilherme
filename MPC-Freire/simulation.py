@@ -9,7 +9,7 @@ g = 9.81  # Aceleração da gravidade [m/s²]
 R = 8.314 # Constante dos gases [J/mol.K]
 
 # Parâmetros Gerais do Sistema 
-M = 0.02 # Massa molar do gás [kg/mol]
+M = 0.028 # Massa molar do gás [kg/mol]
 ro_o = 800 # Densidade do óleo no reservatório [kg/m³] 
 Ps = 2e6  # Pressão do separador [Pa]
 vo = 1 / ro_o # Volume específico do óleo [m³/kg]
@@ -43,7 +43,7 @@ Cpc1 = 2e-3 # Coeficiente da choke de produção [m²]
 Civ1 = 0.1e-3 # Coeficiente da válvula de injeção [m²]
 Pr1 = 1.50e7 # Pressão no reservatório [Pa]
 Lr_poco1 = 500 # Distância do reservatório até o ponto de injeção 
-GOR1 = 0.1 # Razão Gás-Óleo [kg/kg] 
+GOR1 = 0.05 # Razão Gás-Óleo [kg/kg] 
 
 # Áreas e Volumes Calculados para Poço 1
 Aw1 = (ca.pi * (Dw1 ** 2)) / 4 # Área da seção transversal do poço [m²]
@@ -75,7 +75,7 @@ Cpc2 = 2e-3
 Civ2 = 0.1e-3
 Pr2 = 1.55e7 # Diferente do poço 1
 Lr_poco2 = 500
-GOR2 = 0.12 # Diferente do poço 1
+GOR2 = 0.08 # Diferente do poço 1
 
 # Áreas e Volumes Calculados para Poço 2
 Aw2 = (ca.pi * (Dw2 ** 2)) / 4
@@ -110,7 +110,7 @@ class RiserModel:
         self.u = []
 
         # Injeção inicial para simulação do sistema
-        self.injInit = 1.6
+        self.injInit = 0.5
         self.u0 = [self.injInit]*self.m*self.nU
 
         self.f_modelo = self.createModelo()
@@ -267,7 +267,7 @@ class RiserModel:
         # Aqui meu sistema só está retornando as pressões de fundo de poço
         # Você pode alterar isso se quiser, eu diminui, pois só estava analisando essas
         # E precisava diminuir o tempo de cálculo das Hessianas
-        outputs = ca.vertcat(Pbh1, Pbh2)
+        outputs = ca.vertcat(Pbh1, Pbh2, wro1, wro2)
 
         return ca.Function('f_modelo', [x, par], [outputs, x_new], ['x', 'par'], ['outputs', 'x_new'])
     
@@ -358,9 +358,10 @@ class RiserModel:
 
         SPlist = []
         for i in range(nSP):
-            par1 = np.random.randint(0, 5)
-            par2 = np.random.randint(0, 5)
-            result = fsolve(fun_wrap, (3000, 3000, 800, 800, 6000, 6000, 130, 700), args=(par1, par2))
+            par1 = np.random.randint(0, 10)/5
+            par2 = np.random.randint(0, 10)/5
+            result = fsolve(fun_wrap, (1961.8804936, 2017.33517325, 962.04921361, 1042.48337861,
+                           6939.02402957, 6617.93163452, 117.97660766, 795.94318092), args=(par1, par2))
             x_eq = ca.DM(result)
             y_eq = self.f_modelo(x_eq, [par1, par2])[0]
             SPlist.append([y_eq, x_eq, [par1, par2]])

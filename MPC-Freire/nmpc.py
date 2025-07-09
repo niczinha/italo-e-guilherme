@@ -26,8 +26,9 @@ class NMPC:
         self.sim_mf = sim.RiserModel(1, 1, steps, nY, nX, nU, dt)
         
         # Setpoints
-        self.SPList = [[9.1e6, 9.45e6], [9e6, 9.3e6], [9.12e6, 9.4e6], [9.05e6, 9.25e6]]
-        self.y_sp = self.SPList[0]
+        self.SPList = self.sim_mf.setPoints(4)
+        print(self.SPList)
+        self.y_sp = np.array(self.SPList[0][0])
 
         # TODO: Adicionar restrições de entrada e estado
         self.u_min = np.array([[0], [0]])
@@ -233,7 +234,7 @@ class NMPC:
             set_index = min(set_index, len(self.SPList)-1)
 
             for j in range(self.p):
-                self.y_sp[2*j] = self.SPList[set_index][0]
-                self.y_sp[2*j+1] = self.SPList[set_index][1]
+                self.y_sp = np.array(self.SPList[set_index][0])
+                self.ajusteMatrizes()
         
         return self.iter, Ymk_forPrint, Ypk_forPrint, Upk_forPrint, dU_forPrint, Ysp_forPrint, Tempos_forPrint, self.dt
