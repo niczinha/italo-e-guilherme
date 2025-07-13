@@ -26,15 +26,15 @@ class NMPC:
         self.sim_mf = sim.RiserModel(1, 1, steps, nY, nX, nU, dt)
         
         # Setpoints
-        self.SPList = self.sim_mf.setPoints(4)
+        self.SPList = [[9.5e6,9.5e6,0,0],[10e6,9e6,0,0],[9.25e6,9.75e6,0,0],[9.6e6,9.4e6,0,0]]
         print(self.SPList)
-        self.y_sp = np.array(self.SPList[0][0])
+        self.y_sp = np.array(self.SPList[0])
 
         # TODO: Adicionar restrições de entrada e estado
         self.u_min = np.array([[0], [0]])
-        self.u_max = np.array([[2], [2]])
-        self.dU_min = np.array([[-0.2], [-0.2]])
-        self.dU_max = np.array([[0.2], [0.2]])
+        self.u_max = np.array([[5], [5]])
+        self.dU_min = np.array([[-0.5], [-0.5]])
+        self.dU_max = np.array([[0.5], [0.5]])
         self.y_min = np.array([[0] for _ in range(nY)])
         self.y_max = np.array([[np.inf] for _ in range(nY)])
     
@@ -232,9 +232,7 @@ class NMPC:
             # Mudança de setpoint
             set_index = i // (self.iter // len(self.SPList))
             set_index = min(set_index, len(self.SPList)-1)
-
-            for j in range(self.p):
-                self.y_sp = np.array(self.SPList[set_index][0])
-                self.ajusteMatrizes()
+            self.y_sp = np.array(self.SPList[set_index])
+            self.y_sp = ca.DM(self.iTil(self.y_sp,self.p).reshape(-1,1))
         
         return self.iter, Ymk_forPrint, Ypk_forPrint, Upk_forPrint, dU_forPrint, Ysp_forPrint, Tempos_forPrint, self.dt
