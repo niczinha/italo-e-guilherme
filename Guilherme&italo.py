@@ -9,7 +9,7 @@ g = 9.81  # Aceleração da gravidade [m/s²]
 R = 8.314 # Constante dos gases [J/mol.K]
 
 # Parâmetros Gerais do Sistema 
-M = 0.028 # Massa molar do gás [kg/mol]
+M = 0.020 # Massa molar do gás [kg/mol]
 ro_o = 800 # Densidade do óleo no reservatório [kg/m³] 
 Ps = 2e6  # Pressão do separador [Pa]
 vo = 1 / ro_o # Volume específico do óleo [m³/kg]
@@ -43,7 +43,7 @@ Cpc1 = 2e-3 # Coeficiente da choke de produção [m²]
 Civ1 = 0.1e-3 # Coeficiente da válvula de injeção [m²]
 Pr1 = 1.50e7 # Pressão no reservatório [Pa]
 Lr_poco1 = 500 # Distância do reservatório até o ponto de injeção 
-GOR1 = 0.1 # Razão Gás-Óleo [kg/kg] 
+GOR1 = 0.1 # Razão Gás-Óleo [kg/kg] 39
 
 # Áreas e Volumes Calculados para Poço 1
 Aw1 = (ca.pi * (Dw1 ** 2)) / 4 # Área da seção transversal do poço [m²]
