@@ -26,15 +26,15 @@ class NMPC:
         self.sim_mf = sim.RiserModel(1, 1, steps, nY, nX, nU, dt)
         
         # Setpoints
-        self.SPList = [[9.5e6,9.5e6,0,0],[10e6,9e6,0,0],[9.25e6,9.75e6,0,0],[9.6e6,9.4e6,0,0]]
+        self.SPList = [[9.05e6,9.3e6,0,0]]
         print(self.SPList)
         self.y_sp = np.array(self.SPList[0])
 
         # TODO: Adicionar restrições de entrada e estado
-        self.u_min = np.array([[0], [0]])
+        self.u_min = np.array([[0.1], [0.1]])
         self.u_max = np.array([[5], [5]])
-        self.dU_min = np.array([[-0.5], [-0.5]])
-        self.dU_max = np.array([[0.5], [0.5]])
+        self.dU_min = np.array([[-0.25], [-0.25]])
+        self.dU_max = np.array([[0.25], [0.25]])
         self.y_min = np.array([[0] for _ in range(nY)])
         self.y_max = np.array([[np.inf] for _ in range(nY)])
     
@@ -119,11 +119,8 @@ class NMPC:
 
         opti.solver('ipopt', {
             "ipopt.print_level": 0,
-            "ipopt.tol": 1e-6,         
-            "ipopt.max_iter": 750,
-            "ipopt.mu_strategy": "adaptive",
-            "ipopt.linear_solver": "mumps",
-            "ipopt.sb": "yes"
+            "ipopt.tol": 1e-6,
+            "ipopt.linear_solver": "mumps"
         })
         print(opti)
 
@@ -227,6 +224,7 @@ class NMPC:
             dU_forPrint.append(self.dUk.copy())
             print('dU_opt: ',dU_opt[:self.m*self.nU])
             print('dUk: ', self.dUk)
+            print('Uk: ', upk)
             Ysp_forPrint.append(np.array(self.y_sp.full()).copy())
             
             # Mudança de setpoint

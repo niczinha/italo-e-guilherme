@@ -30,7 +30,7 @@ import pickle
         # 25: wrh      - Vazão total no riser (gás + óleo)
 
 Q = [1e-6,1e-6, 0, 0]
-R = [0.11,0.1]
+R = [1e3,1e3]
 
 p, m, steps = 10, 3, 3
 NMPC = NMPC(p, m, steps, 4, 8, 2, Q, R, 10, 320)

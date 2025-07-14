@@ -9,7 +9,7 @@ g = 9.81  # Aceleração da gravidade [m/s²]
 R = 8.314 # Constante dos gases [J/mol.K]
 
 # Parâmetros Gerais do Sistema 
-M = 0.028 # Massa molar do gás [kg/mol]
+M = 0.020 # Massa molar do gás [kg/mol]
 ro_o = 800 # Densidade do óleo no reservatório [kg/m³] 
 Ps = 2e6  # Pressão do separador [Pa]
 vo = 1 / ro_o # Volume específico do óleo [m³/kg]
@@ -43,7 +43,7 @@ Cpc1 = 2e-3 # Coeficiente da choke de produção [m²]
 Civ1 = 0.1e-3 # Coeficiente da válvula de injeção [m²]
 Pr1 = 1.50e7 # Pressão no reservatório [Pa]
 Lr_poco1 = 500 # Distância do reservatório até o ponto de injeção 
-GOR1 = 0.05 # Razão Gás-Óleo [kg/kg] 
+GOR1 = 0.1 # Razão Gás-Óleo [kg/kg] 39
 
 # Áreas e Volumes Calculados para Poço 1
 Aw1 = (ca.pi * (Dw1 ** 2)) / 4 # Área da seção transversal do poço [m²]
@@ -75,7 +75,7 @@ Cpc2 = 2e-3
 Civ2 = 0.1e-3
 Pr2 = 1.55e7 # Diferente do poço 1
 Lr_poco2 = 500
-GOR2 = 0.08 # Diferente do poço 1
+GOR2 = 0.11 # Diferente do poço 1
 
 # Áreas e Volumes Calculados para Poço 2
 Aw2 = (ca.pi * (Dw2 ** 2)) / 4
@@ -110,7 +110,7 @@ class RiserModel:
         self.u = []
 
         # Injeção inicial para simulação do sistema
-        self.injInit = 0.5
+        self.injInit = 1
         self.u0 = [self.injInit]*self.m*self.nU
 
         self.f_modelo = self.createModelo()
@@ -129,33 +129,29 @@ class RiserModel:
         # Parâmetros: (Vazões de injeção de gás para cada poço)
         wgl1, wgl2 = par[0], par[1]
 
-        # --- Cálculos para o Poço 1 ---
-        # Adaptação das suas fórmulas com as variáveis de Poço 1
         Pai1 = ((R * Ta1 / (Va1 * M)) + ((g * La1) / (La1 * Aa1))) * x[0]
-        ro_w1 = (x[2] + x[4] - (ro_o * Lr1 * Ar1)) / (Lw1 * Aw1) # Lr1*Ar1 é a forma do seu código
-        Pwh1 = (R * Tw1 / M) * (x[2] / (Lw1 * Aw1 + Lr1 * Ar1 - (vo * x[4]))) - 1/2 * (x[2] + x[4] *g *Hw1 /(Lw1 * Aw1))
-        Pwi1 = Pwh1 + g / (Lw1 * Aw1) * (x[4] + x[2] - ro_o * Lr1 * Ar1) * Hw1 + dp_fric_t1 
+        ro_w1 = (x[2] + x[4] - (ro_o * Lr1 * Ar1)) / (Lw1 * Aw1) 
+        Pwh1 = (R * Tw1 / M) * (x[2] / (Lw1 * Aw1 + Lr1 * Ar1 - (vo * x[4]))) - 1/2 * ((x[2] + x[4])* g* Hw1 / (Lw1 * Aw1)) 
+
+        Pwi1 = Pwh1 + (g / (Lw1 * Aw1)) * (x[4] + x[2] - ro_o * Lr1 * Ar1) * Hw1 + dp_fric_t1 
         Pbh1 = Pwi1 + (ro_w1 * g * Hbh1) + dp_fric_bh1
         ro_a1 = (M * Pai1) / (R * Ta)
-
         wiv1 = Civ1 * ca.sqrt(ca.fmax(0, ro_a1 * (Pai1 - Pwi1)))
         wro1 = PI1 * (Pr1 - Pbh1)
         wrg1 = GOR1 * wro1
-
-        # --- Cálculos para o Poço 2 ---
+    
         Pai2 = ((R * Ta2 / (Va2 * M)) + ((g * La2) / (La2 * Aa2))) * x[1]
         ro_w2 = (x[3] + x[5] - (ro_o * Lr2 * Ar2)) / (Lw2 * Aw2)
-        Pwh2 = (R * Tw2 / M) * (x[3] / (Lw2 * Aw2 + Lr2 * Ar2 - (vo * x[5]))) - 1/2 * (x[3] + x[5] *g *Hw2 /(Lw2 * Aw2))
+        Pwh2 = (R * Tw2 / M) * (x[3] / (Lw2 * Aw2 + Lr2 * Ar2 - (vo * x[5]))) - 1/2 * ((x[3] + x[5])* g* Hw2 / (Lw2 * Aw2))
 
         ro_a2 = (M * Pai2) / (R * Ta)
-        Pwi2 = Pwh2 + g / (Lw2 * Aw2) * (x[5] + x[3] - ro_o * Lr2 * Ar2) * Hw2 + dp_fric_t2
+        Pwi2 = Pwh2 + (g / (Lw2 * Aw2)) * (x[5] + x[3] - ro_o * Lr2 * Ar2) * Hw2 + dp_fric_t2
         Pbh2 = Pwi2 + (ro_w2 * g * Hbh2) + dp_fric_bh2
 
         wiv2 = Civ2 * ca.sqrt(ca.fmax(0, ro_a2 * (Pai2 - Pwi2)))
         wro2 = PI2 * (Pr2 - Pbh2)
         wrg2 = GOR2 * wro2
 
-        # --- Cálculos para o Riser Comum ---
         ro_r = (x[6] + x[7]) / (Lr_comum * Ar_comum)
         Prh = (Tr_comum * R / M) * (x[6] / (Lbh1 * Abh1)) 
         Pm = Prh + (ro_r * g * Hbh1) + dp_fric_r_comum 
@@ -215,48 +211,48 @@ class RiserModel:
 
         wgl1, wgl2 = par[0], par[1]
 
-        # --- Cálculos para o Poço 1 ---
-        
         Pai1 = ((R * Ta1 / (Va1 * M)) + ((g * La1) / (La1 * Aa1))) * x[0]
-        ro_w1 = (x_new[2] + x_new[4] - (ro_o * Lr1 * Ar1)) / (Lw1 * Aw1)
-        Pwh1 = (R * Tw1 / M) * (x_new[2] / (Lw1 * Aw1 + Lr1 * Ar1 - (vo * x_new[4]))) - 1/2 * (x[2] + x[4] *g *Hw1 /(Lw1 * Aw1))
-        Pwi1 = Pwh1 + g / (Lw1 * Aw1) * (x_new[4] + x_new[2] - ro_o * Lr1 * Ar1) * Hw1 + dp_fric_t1
+        ro_w1 = (x[2] + x[4] - (ro_o * Lr1 * Ar1)) / (Lw1 * Aw1) 
+        Pwh1 = (R * Tw1 / M) * (x[2] / (Lw1 * Aw1 + Lr1 * Ar1 - (vo * x[4]))) - 1/2 * ((x[2] + x[4])* g* Hw1 / (Lw1 * Aw1)) 
+
+        Pwi1 = Pwh1 + (g / (Lw1 * Aw1)) * (x[4] + x[2] - ro_o * Lr1 * Ar1) * Hw1 + dp_fric_t1 
         Pbh1 = Pwi1 + (ro_w1 * g * Hbh1) + dp_fric_bh1
         ro_a1 = (M * Pai1) / (R * Ta)
         wiv1 = Civ1 * ca.sqrt(ca.fmax(0, ro_a1 * (Pai1 - Pwi1)))
         wro1 = PI1 * (Pr1 - Pbh1)
         wrg1 = GOR1 * wro1
-        
-        # --- Cálculos para o Poço 2 ---
-        Pai2 = ((R * Ta2 / (Va2 * M)) + ((g * La2) / (La2 * Aa2))) * x_new[1]
+    
+        Pai2 = ((R * Ta2 / (Va2 * M)) + ((g * La2) / (La2 * Aa2))) * x[1]
+        ro_w2 = (x[3] + x[5] - (ro_o * Lr2 * Ar2)) / (Lw2 * Aw2)
+        Pwh2 = (R * Tw2 / M) * (x[3] / (Lw2 * Aw2 + Lr2 * Ar2 - (vo * x[5]))) - 1/2 * ((x[3] + x[5])* g* Hw2 / (Lw2 * Aw2))
         ro_a2 = (M * Pai2) / (R * Ta)
-        ro_w2 = (x_new[3] + x_new[5] - (ro_o * Lr2 * Ar2)) / (Lw2 * Aw2)
-        Pwh2 = (R * Tw2 / M) * (x_new[3] / (Lw2 * Aw2 + Lr2 * Ar2 - (vo * x_new[5]))) - 1/2 * (x[3] + x[5] *g *Hw2 /(Lw2 * Aw2))
-        Pwi2 = Pwh2 + g / (Lw2 * Aw2) * (x_new[5] + x_new[3] - ro_o * Lr2 * Ar2) * Hw2 + dp_fric_t2
+
+        Pwi2 = Pwh2 + (g / (Lw2 * Aw2)) * (x[5] + x[3] - ro_o * Lr2 * Ar2) * Hw2 + dp_fric_t2
         Pbh2 = Pwi2 + (ro_w2 * g * Hbh2) + dp_fric_bh2
+
         wiv2 = Civ2 * ca.sqrt(ca.fmax(0, ro_a2 * (Pai2 - Pwi2)))
         wro2 = PI2 * (Pr2 - Pbh2)
         wrg2 = GOR2 * wro2
 
         # --- Cálculos para o Riser Comum ---
-        ro_r = (x_new[6] + x_new[7]) / (Lr_comum * Ar_comum)
-        Prh = (Tr_comum * R / M) * (x_new[6] / (Lbh1 * Abh1))
+        ro_r = (x[6] + x[7]) / (Lr_comum * Ar_comum)
+        Prh = (Tr_comum * R / M) * (x[6] / (Lbh1 * Abh1))
         Pm = Prh + (ro_r * g * Hbh1) + dp_fric_r_comum
 
         y3_1 = ca.fmax(0, (Pwh1 - Pm))
         wpc1 = Cpc1 * ca.sqrt(ro_w1 * y3_1)
-        wpg1_prod = (x_new[2] / (x_new[2] + x_new[4])) * wpc1
-        wpo1_prod = (x_new[4] / (x_new[2] + x_new[4])) * wpc1
+        wpg1_prod = (x[2] / (x[2] + x[4])) * wpc1
+        wpo1_prod = (x[4] / (x[2] + x[4])) * wpc1
 
         y3_2 = ca.fmax(0, (Pwh2 - Pm))
         wpc2 = Cpc2 * ca.sqrt(ro_w2 * y3_2)
-        wpg2_prod = (x_new[3] / (x_new[3] + x_new[5])) * wpc2
-        wpo2_prod = (x_new[5] / (x_new[3] + x_new[5])) * wpc2
+        wpg2_prod = (x[3] / (x[3] + x[5])) * wpc2
+        wpo2_prod = (x[5] / (x[3] + x[5])) * wpc2
 
         y4_rh = ca.fmax(0, (Prh - Ps))
         wrh = Crh * ca.sqrt(ro_r * y4_rh)
-        wtg = (x_new[6] / (x_new[6] + x_new[7])) * wrh
-        wto = (x_new[7] / (x_new[6] + x_new[7])) * wrh
+        wtg = (x[6] / (x[6] + x[7])) * wrh
+        wto = (x[7] / (x[6] + x[7])) * wrh
 
         # outputs = ca.vertcat(
         #     wiv1, wro1, wpc1, wpg1_prod, wpo1_prod, Pai1, Pwh1, Pwi1, Pbh1, wrg1, # Poço 1
