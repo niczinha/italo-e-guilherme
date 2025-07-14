@@ -2,7 +2,11 @@ import numpy as np
 import casadi as ca
 import matplotlib.pyplot as plt
 from scipy.optimize import fsolve
+import os
 import time 
+
+imagesPath = os.path.join(os.getcwd(), 'MPC-Freire/plots')
+os.makedirs(imagesPath, exist_ok=True)
 
 # Constantes Fundamentais
 g = 9.81  # Aceleração da gravidade [m/s²]
@@ -43,7 +47,7 @@ Cpc1 = 2e-3 # Coeficiente da choke de produção [m²]
 Civ1 = 0.1e-3 # Coeficiente da válvula de injeção [m²]
 Pr1 = 1.50e7 # Pressão no reservatório [Pa]
 Lr_poco1 = 500 # Distância do reservatório até o ponto de injeção 
-GOR1 = 0.05 # Razão Gás-Óleo [kg/kg] 39
+GOR1 = 0.08 # Razão Gás-Óleo [kg/kg] 39
 
 # Áreas e Volumes Calculados para Poço 1
 Aw1 = (ca.pi * (Dw1 ** 2)) / 4 # Área da seção transversal do poço [m²]
@@ -75,7 +79,7 @@ Cpc2 = 2e-3
 Civ2 = 0.1e-3
 Pr2 = 1.55e7 # Diferente do poço 1
 Lr_poco2 = 500
-GOR2 = 0.06 # Diferente do poço 1
+GOR2 = 0.1 # Diferente do poço 1
 
 # Áreas e Volumes Calculados para Poço 2
 Aw2 = (ca.pi * (Dw2 ** 2)) / 4
@@ -110,7 +114,7 @@ class RiserModel:
         self.u = []
 
         # Injeção inicial para simulação do sistema
-        self.injInit = 1
+        self.injInit = 3
         self.u0 = [self.injInit]*self.m*self.nU
 
         self.f_modelo = self.createModelo()
@@ -286,7 +290,7 @@ class RiserModel:
                 u0_curr = ca.vertcat(u0_curr, u0_curr[-self.nU] + dU[self.nU*j])
                 u0_curr = ca.vertcat(u0_curr, u0_curr[-self.nU] + dU[self.nU*j+1])
                 u0_curr = u0_curr[self.nU:]
-            par = ca.vertcat(u0_curr[-self.nU], u0_curr[-self.nU+1])  # Concatenando os parâmetros de controle
+            par = ca.vertcat(u0_curr[-self.nU], u0_curr[-self.nU+1])
             outputs, init_x = self.f_modelo(init_x, par)
             y = ca.vertcat(y, outputs)
             x = ca.vertcat(x, init_x)
@@ -305,19 +309,19 @@ class RiserModel:
         self.y = []
         init_x = x0[-self.nX:]  # Últimos estados iniciais
 
-        for j in range(self.p):
-            if j < self.m:
+        for j in range(1):
+            if j < 1:
                 self.u0.append(self.u0[-self.nU] + dU[self.nU*j])
                 self.u0.append(self.u0[-self.nU] + dU[self.nU*j+1])
             par = np.array([self.u0[-self.nU], self.u0[-self.nU+1]])
             outputs, init_x = self.f_modelo(init_x, par)
             self.y.append(outputs.full().flatten())
             self.x.append(init_x.full().flatten())
-            if j < self.m:
+            if j < 1:
                 self.u.append([self.u0[-self.nU], self.u0[-self.nU+1]])
             
         self.y = np.array(self.y).reshape(-1,1)
-        self.x = np.array(self.x).reshape(-1, 1)
+        self.x = np.array(self.x).reshape(-1,1)
         self.uk = np.array(self.u).reshape(-1,1)[-self.nU:]
         return self.y, self.x, self.uk
     
@@ -342,9 +346,9 @@ class RiserModel:
             x.append(x0.full().flatten())
             u.append(u0[-2:])
 
-        y0 = np.array(y[-self.steps:]).reshape(-1,1)
-        x0 = np.array(x[-self.steps:]).reshape(-1,1)
-        u0 = np.array(u[-self.steps:]).reshape(-1,1)
+        y0 = np.array(y[-self.steps:]).reshape(-1,1) # [-self.steps:][-self.steps:]).reshape(-1,1).reshape(-1,1)
+        x0 = np.array(x[-self.steps:]).reshape(-1,1)#
+        u0 = np.array(u[-self.steps:]).reshape(-1,1)#
 
         return y0, x0, u0
     
@@ -369,26 +373,49 @@ class RiserModel:
         return SPlist
 
 if __name__ == "__main__":
-    sim = RiserModel(p=10, m=2, steps=3, dt=10, nY=4, nX=8, nU=2)
+    sim = RiserModel(p=400, m=400, steps=3, dt=5, nY=4, nX=8, nU=2)
     
     # Parâmetros iniciais
-    N_sim = 100  # número de iterações de simulação
+    N_sim = 4000  # número de iterações de simulação
     x_single = np.array([1961.8804936, 2017.33517325, 962.04921361, 1042.48337861,
                            6939.02402957, 6617.93163452, 117.97660766, 795.94318092])  # Estado único
     x0 = np.tile(x_single.reshape(-1, 1), (sim.m, 1))  # (8×1) empilhado 2 vezes → (16×1)
     dU_total = np.zeros((N_sim, sim.nU * sim.m, 1))  # Ex: 30 passos, cada com (4x1)
-    for k in range(N_sim):
-        if k == 0:
-            dU_total[k][0] = dU_total[k][0] +0.25
-            dU_total[k][1] = dU_total[k][1] +0.25
-            dU_total[k][2] = dU_total[k][2] +0.25
-            dU_total[k][3] = dU_total[k][3] +0.25
-        if k == 11:
-            dU_total[k][0] = dU_total[k][0] +0.25
-            dU_total[k][1] = dU_total[k][1] +0.25
-            dU_total[k][2] = dU_total[k][2] +0.25
-            dU_total[k][3] = dU_total[k][3] +0.25
-    u0 = np.ones((sim.nU * sim.m, 1))
+    # for k in range(N_sim):
+    #     if k > 0 :
+    #         dU_total[k][0] = dU_total[k][0] +0.25
+    #         dU_total[k][1] = dU_total[k][1] +0.25
+    #         dU_total[k][2] = dU_total[k][2] +0.25
+    #         dU_total[k][3] = dU_total[k][3] +0.25
+    #     if k == 11:
+    #         dU_total[k][0] = dU_total[k][0] +0.25
+    #         dU_total[k][1] = dU_total[k][1] +0.25
+    #         dU_total[k][2] = dU_total[k][2] +0.25
+    #         dU_total[k][3] = dU_total[k][3] +0.25
+    
+    dU_total[0][200] = 0.5
+    dU_total[0][201] = -0.5
+    
+    dU_total[0][250] = 0.5
+    
+    dU_total[0][300] = 0.5
+    
+    dU_total[0][350] = 0.5
+    
+    dU_total[0][400] = 0.5
+    dU_total[0][401] = -0.5
+    
+    dU_total[0][450] = 0.5
+    
+    dU_total[0][500] = 0.5
+    
+    dU_total[0][550] = 0.5
+    
+    dU_total[0][600] = 0.5
+    
+    dU_total[0][650] = 0.5
+    
+    u0 = np.ones((sim.nU * sim.m, 1)) * 3
 
     x_hist = []
     y_hist = []
@@ -398,14 +425,14 @@ if __name__ == "__main__":
         dU = dU_total[k]
 
         # Obtem predição de saída e controle futuro (modelo interno)
-        y_out, x_out, u_out = sim.caPredFun(x0, dU, u0)
+        y_out, x_out, u_out = sim.caPredFun(x0, u0, dU)
         # y_pred = y_pred.full().flatten()
         # x_pred = x_pred.full().flatten()
         # u_pred = u_pred.full().flatten()
         u_out = np.array(u_out).reshape(-1,1)
 
         # Planta responde ao controle aplicado
-        y_out, x_out, u_out = sim.pPlanta(x0, dU)
+        #y_out, x_out, u_out = sim.pPlanta(x0, dU)
         # Atualiza x0 empilhando os últimos m estados (mantém histórico)
         x0 = np.vstack((x0[sim.nX:], x_out[-sim.nX:]))  # Remove o mais antigo, adiciona novo
 
@@ -431,7 +458,7 @@ if __name__ == "__main__":
     print(sim.setPoints(5))
 
     # === PLOT ===
-    t = np.arange(1600)
+    t = np.arange(800)
 
     print(f"{y_hist[:,0][-1]} - Pressão")
     print(f"{y_hist[:,2][-1]} - Vazao")
@@ -439,8 +466,8 @@ if __name__ == "__main__":
     plt.figure(figsize=(16, 14))
 
     plt.subplot(3, 1, 1)
-    # plt.plot(t, u_hist[:, 0], label="wgl1 (Poço 1)")
-    # plt.plot(t, u_hist[:, 1], label="wgl2 (Poço 2)")
+    # plt.plot(t, u_hist[0][::2], label="wgl1 (Poço 1)")
+    # plt.plot(t, u_hist[0][1::2], label="wgl2 (Poço 2)")
     plt.plot(t, umk[:,0], label="wgl1 (P inicais)")
     plt.plot(t, umk[:,1], label="wgl2 (P inicais)")
     plt.ylabel("Injeção de gás [kg/s]")
@@ -470,8 +497,7 @@ if __name__ == "__main__":
     plt.legend()
 
     plt.tight_layout()
-    plt.tight_layout()
-    plt.show()
+    plt.savefig(os.path.join(imagesPath, "sim.png"))
     
 
 

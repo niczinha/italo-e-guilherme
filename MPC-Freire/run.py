@@ -33,7 +33,7 @@ Q = [1e-3,1e-3, 0, 0]
 R = [1,1]
 
 p, m, steps = 10, 3, 3
-NMPC = NMPC(p, m, steps, 4, 8, 2, Q, R, 10, 90)
+NMPC = NMPC(p, m, steps, 4, 8, 2, Q, R, 10, 360)
 iter, Ymk, Ypk, Upk, dU, Ysp, Tempos, dt = NMPC.run()
 
 # Salvando os resultados em um arquivo pickle
