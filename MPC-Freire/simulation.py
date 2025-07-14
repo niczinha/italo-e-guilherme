@@ -43,7 +43,7 @@ Cpc1 = 2e-3 # Coeficiente da choke de produção [m²]
 Civ1 = 0.1e-3 # Coeficiente da válvula de injeção [m²]
 Pr1 = 1.50e7 # Pressão no reservatório [Pa]
 Lr_poco1 = 500 # Distância do reservatório até o ponto de injeção 
-GOR1 = 0.1 # Razão Gás-Óleo [kg/kg] 39
+GOR1 = 0.05 # Razão Gás-Óleo [kg/kg] 39
 
 # Áreas e Volumes Calculados para Poço 1
 Aw1 = (ca.pi * (Dw1 ** 2)) / 4 # Área da seção transversal do poço [m²]
@@ -75,7 +75,7 @@ Cpc2 = 2e-3
 Civ2 = 0.1e-3
 Pr2 = 1.55e7 # Diferente do poço 1
 Lr_poco2 = 500
-GOR2 = 0.11 # Diferente do poço 1
+GOR2 = 0.06 # Diferente do poço 1
 
 # Áreas e Volumes Calculados para Poço 2
 Aw2 = (ca.pi * (Dw2 ** 2)) / 4
@@ -263,7 +263,7 @@ class RiserModel:
         # Aqui meu sistema só está retornando as pressões de fundo de poço
         # Você pode alterar isso se quiser, eu diminui, pois só estava analisando essas
         # E precisava diminuir o tempo de cálculo das Hessianas
-        outputs = ca.vertcat(Pbh1, Pbh2, wro1, wro2)
+        outputs = ca.vertcat(Pbh1, Pbh2, wpo1_prod, wpo2_prod)
 
         return ca.Function('f_modelo', [x, par], [outputs, x_new], ['x', 'par'], ['outputs', 'x_new'])
     
@@ -323,24 +323,28 @@ class RiserModel:
     
     def pIniciais(self):
         # Pontos iniciais para começar a simulação
-        u0 = [self.injInit]*self.m*self.nU
+        y = []
+        x = []
+        u = []
+
+        u0 = [self.injInit]*self.nU
         x0 = np.array([1961.8804936, 2017.33517325, 962.04921361, 1042.48337861,
                            6939.02402957, 6617.93163452, 117.97660766, 795.94318092])  # Estados iniciais
 
         t0 = 1
-        tf = 16000
+        tf = 4000
         dt = self.dt
         t = np.arange(t0, tf, dt)
 
         for ti in t:
             y0, x0 = self.f_modelo(x0, u0[-2:])
-            self.y.append(y0.full().flatten())
-            self.x.append(x0.full().flatten())
-            self.u.append(u0[-2:])
+            y.append(y0.full().flatten())
+            x.append(x0.full().flatten())
+            u.append(u0[-2:])
 
-        y0 = np.array(self.y[:self.steps]).reshape(-1, 1)
-        x0 = np.array(self.x[:self.steps]).reshape(-1, 1)
-        u0 = np.array(self.u[:self.steps]).reshape(-1, 1)
+        y0 = np.array(y[-self.steps:]).reshape(-1,1)
+        x0 = np.array(x[-self.steps:]).reshape(-1,1)
+        u0 = np.array(u[-self.steps:]).reshape(-1,1)
 
         return y0, x0, u0
     
@@ -365,202 +369,40 @@ class RiserModel:
         return SPlist
 
 if __name__ == "__main__":
-
-    # sim = RiserModel(p=10, m=2, steps=3, dt=1, nY=26, nX = 8, nU=2)
-    # f_modelo = sim.createModelo()
-
-    # par_values_simulation = [[1, 1]] # [wgl1, wgl2]
-
-    # t0 = 1
-    # tf = 16000
-    # dt = 1
-
-    # # [m_ga1, m_ga2, m_gt1, m_gt2, m_ot1, m_ot2, m_gr, m_or]
-    # u0 = [3000, 3000, 800, 800, 6000, 6000, 130, 700] # Duplicando valores iniciais para 2 poços
-
-    # cmap = plt.cm.get_cmap("tab10", len(par_values_simulation))
-
-    # plt.figure(figsize=(20, 60)) # Ajuste o tamanho da figura para acomodar mais plots
-
-    # t = np.arange(t0, tf, dt)
-    
-    # for i, par_pair in enumerate(par_values_simulation):
-    #     x_current = np.array(u0)
-    #     saidas = []
-    #     t1 = time.time()
-    #     for ti in t:    
-    #         outputs, x_current = f_modelo(x_current, par_pair)
-    #         saidas.append(outputs.full().flatten())
-    #     print(time.time() - t1)
-    #     saidas = np.array(saidas).T
-
-    #     # Vazões de Gás Anular (Injeção de Gás Lift)
-    #     plt.subplot(len(par_values_simulation) * 8, 2, 1 + i*16)
-    #     plt.plot(t, saidas[0, :], color=cmap(i), label=f'Poço 1, Injeção = {par_pair[0]} kg/s')
-    #     plt.title("Vazão de Gás Anular (Injeção) - Poço 1")
-    #     plt.xlabel("Tempo [s]")
-    #     plt.ylabel("Vazão [kg/s]")
-    #     plt.grid()
-    #     plt.legend()
-
-    #     plt.subplot(len(par_values_simulation) * 8, 2, 2 + i*16)
-    #     plt.plot(t, saidas[10, :], color=cmap(i), label=f'Poço 2, Injeção = {par_pair[1]} kg/s')
-    #     plt.title("Vazão de Gás Anular (Injeção) - Poço 2")
-    #     plt.xlabel("Tempo [s]")
-    #     plt.ylabel("Vazão [kg/s]")
-    #     plt.grid()
-    #     plt.legend()
-
-    #     # Vazão de Óleo do Reservatório para o Tubo
-    #     plt.subplot(len(par_values_simulation) * 8, 2, 3 + i*16)
-    #     plt.plot(t, saidas[1, :], color=cmap(i), label=f'Poço 1, Injeção = {par_pair[0]} kg/s')
-    #     plt.title("Vazão de Óleo do Reservatório - Poço 1")
-    #     plt.xlabel("Tempo [s]")
-    #     plt.ylabel("Vazão [kg/s]")
-    #     plt.grid()
-    #     plt.legend()
-
-    #     plt.subplot(len(par_values_simulation) * 8, 2, 4 + i*16)
-    #     plt.plot(t, saidas[11, :], color=cmap(i), label=f'Poço 2, Injeção = {par_pair[1]} kg/s')
-    #     plt.title("Vazão de Óleo do Reservatório - Poço 2")
-    #     plt.xlabel("Tempo [s]")
-    #     plt.ylabel("Vazão [kg/s]")
-    #     plt.grid()
-    #     plt.legend()
-
-    #     # Vazão Total na Choke de Produção
-    #     plt.subplot(len(par_values_simulation) * 8, 2, 5 + i*16)
-    #     plt.plot(t, saidas[2, :], color=cmap(i), label=f'Poço 1, Injeção = {par_pair[0]} kg/s')
-    #     plt.title("Vazão Total na Choke de Produção - Poço 1")
-    #     plt.xlabel("Tempo [s]")
-    #     plt.ylabel("Vazão [kg/s]")
-    #     plt.grid()
-    #     plt.legend()
-
-    #     plt.subplot(len(par_values_simulation) * 8, 2, 6 + i*16)
-    #     plt.plot(t, saidas[12, :], color=cmap(i), label=f'Poço 2, Injeção = {par_pair[1]} kg/s')
-    #     plt.title("Vazão Total na Choke de Produção - Poço 2")
-    #     plt.xlabel("Tempo [s]")
-    #     plt.ylabel("Vazão [kg/s]")
-    #     plt.grid()
-    #     plt.legend()
-
-    #     # Vazão de Gás Produzido na Cabeça do Poço
-    #     plt.subplot(len(par_values_simulation) * 8, 2, 7 + i*16)
-    #     plt.plot(t, saidas[3, :], color=cmap(i), label=f'Poço 1, Injeção = {par_pair[0]} kg/s')
-    #     plt.title("Vazão de Gás Produzido - Poço 1")
-    #     plt.xlabel("Tempo [s]")
-    #     plt.ylabel("Vazão [kg/s]")
-    #     plt.grid()
-    #     plt.legend()
-
-    #     plt.subplot(len(par_values_simulation) * 8, 2, 8 + i*16)
-    #     plt.plot(t, saidas[13, :], color=cmap(i), label=f'Poço 2, Injeção = {par_pair[1]} kg/s')
-    #     plt.title("Vazão de Gás Produzido - Poço 2")
-    #     plt.xlabel("Tempo [s]")
-    #     plt.ylabel("Vazão [kg/s]")
-    #     plt.grid()
-    #     plt.legend()
-
-    #     # Vazão de Óleo Produzido na Cabeça do Poço
-    #     plt.subplot(len(par_values_simulation) * 8, 2, 9 + i*16)
-    #     plt.plot(t, saidas[4, :], color=cmap(i), label=f'Poço 1, Injeção = {par_pair[0]} kg/s')
-    #     plt.title("Vazão de Óleo Produzido - Poço 1")
-    #     plt.xlabel("Tempo [s]")
-    #     plt.ylabel("Vazão [kg/s]")
-    #     plt.grid()
-    #     plt.legend()
-
-    #     plt.subplot(len(par_values_simulation) * 8, 2, 10 + i*16)
-    #     plt.plot(t, saidas[14, :], color=cmap(i), label=f'Poço 2, Injeção = {par_pair[1]} kg/s')
-    #     plt.title("Vazão de Óleo Produzido - Poço 2")
-    #     plt.xlabel("Tempo [s]")
-    #     plt.ylabel("Vazão [kg/s]")
-    #     plt.grid()
-    #     plt.legend()
-
-    #     # Pressão na Cabeça do Poço
-    #     plt.subplot(len(par_values_simulation) * 8, 2, 11 + i*16)
-    #     plt.plot(t, saidas[6, :], color=cmap(i), label=f'Poço 1, Injeção = {par_pair[0]} kg/s')
-    #     plt.title("Pressão na Cabeça do Poço - Poço 1")
-    #     plt.xlabel("Tempo [s]")
-    #     plt.ylabel("Pressão [Pa]")
-    #     plt.grid()
-    #     plt.legend()
-
-    #     plt.subplot(len(par_values_simulation) * 8, 2, 12 + i*16)
-    #     plt.plot(t, saidas[16, :], color=cmap(i), label=f'Poço 2, Injeção = {par_pair[1]} kg/s')
-    #     plt.title("Pressão na Cabeça do Poço - Poço 2")
-    #     plt.xlabel("Tempo [s]")
-    #     plt.ylabel("Pressão [Pa]")
-    #     plt.grid()
-    #     plt.legend()
-
-    #     # Pressão no Fundo do Poço
-    #     plt.subplot(len(par_values_simulation) * 8, 2, 13 + i*16)
-    #     plt.plot(t, saidas[8, :], color=cmap(i), label=f'Poço 1, Injeção = {par_pair[0]} kg/s')
-    #     plt.title("Pressão no Fundo do Poço - Poço 1")
-    #     plt.xlabel("Tempo [s]")
-    #     plt.ylabel("Pressão [Pa]")
-    #     plt.grid()
-    #     plt.legend()
-
-    #     plt.subplot(len(par_values_simulation) * 8, 2, 14 + i*16)
-    #     plt.plot(t, saidas[18, :], color=cmap(i), label=f'Poço 2, Injeção = {par_pair[1]} kg/s')
-    #     plt.title("Pressão no Fundo do Poço - Poço 2")
-    #     plt.xlabel("Tempo [s]")
-    #     plt.ylabel("Pressão [Pa]")
-    #     plt.grid()
-    #     plt.legend()
-        
-    #     # Vazão Total de Gás no Riser
-    #     plt.subplot(len(par_values_simulation) * 8, 2, 15 + i*16)
-    #     plt.plot(t, saidas[20, :], color=cmap(i), label=f'Injeção = {par_pair} kg/s')
-    #     plt.title("Vazão Total de Gás no Riser")
-    #     plt.xlabel("Tempo [s]")
-    #     plt.ylabel("Vazão [kg/s]")
-    #     plt.grid()
-    #     plt.legend()
-
-    #     # Vazão Total de Óleo no Riser
-    #     plt.subplot(len(par_values_simulation) * 8, 2, 16 + i*16)
-    #     plt.plot(t, saidas[21, :], color=cmap(i), label=f'Injeção = {par_pair} kg/s')
-    #     plt.title("Vazão Total de Óleo no Riser")
-    #     plt.xlabel("Tempo [s]")
-    #     plt.ylabel("Vazão [kg/s]")
-    #     plt.grid()
-    #     plt.legend()
-
-    # plt.tight_layout()
-    # plt.show()
-
-    sim = RiserModel(p=10, m=2, steps=3, dt=1, nY=26, nX=8, nU=2)
+    sim = RiserModel(p=10, m=2, steps=3, dt=10, nY=4, nX=8, nU=2)
     
     # Parâmetros iniciais
-    N_sim = 30  # número de iterações de simulação
-    x_single = np.array([3000, 3000, 800, 800, 6000, 6000, 130, 700])  # Estado único
+    N_sim = 100  # número de iterações de simulação
+    x_single = np.array([1961.8804936, 2017.33517325, 962.04921361, 1042.48337861,
+                           6939.02402957, 6617.93163452, 117.97660766, 795.94318092])  # Estado único
     x0 = np.tile(x_single.reshape(-1, 1), (sim.m, 1))  # (8×1) empilhado 2 vezes → (16×1)
     dU_total = np.zeros((N_sim, sim.nU * sim.m, 1))  # Ex: 30 passos, cada com (4x1)
     for k in range(N_sim):
-        if k < 10:
-            dU_total[k][0] = dU_total[k][0] + 0.05 
-            dU_total[k][1] = dU_total[k][1] + 0.05
-            dU_total[k][2] = dU_total[k][2] + 0.05
-            dU_total[k][3] = dU_total[k][3] + 0.05
+        if k == 0:
+            dU_total[k][0] = dU_total[k][0] +0.25
+            dU_total[k][1] = dU_total[k][1] +0.25
+            dU_total[k][2] = dU_total[k][2] +0.25
+            dU_total[k][3] = dU_total[k][3] +0.25
+        if k == 11:
+            dU_total[k][0] = dU_total[k][0] +0.25
+            dU_total[k][1] = dU_total[k][1] +0.25
+            dU_total[k][2] = dU_total[k][2] +0.25
+            dU_total[k][3] = dU_total[k][3] +0.25
     u0 = np.ones((sim.nU * sim.m, 1))
 
     x_hist = []
     y_hist = []
     u_hist = []
 
-    for k in range(N_sim):
+    for k in range(1):
         dU = dU_total[k]
 
         # Obtem predição de saída e controle futuro (modelo interno)
-        y_pred, x_pred, u_pred = sim.caPredFun(x0, dU, u0)
-        y_pred = y_pred.full().flatten()
-        x_pred = x_pred.full().flatten()
-        u_pred = u_pred.full().flatten()
+        y_out, x_out, u_out = sim.caPredFun(x0, dU, u0)
+        # y_pred = y_pred.full().flatten()
+        # x_pred = x_pred.full().flatten()
+        # u_pred = u_pred.full().flatten()
+        u_out = np.array(u_out).reshape(-1,1)
 
         # Planta responde ao controle aplicado
         y_out, x_out, u_out = sim.pPlanta(x0, dU)
@@ -579,41 +421,48 @@ if __name__ == "__main__":
     y_hist = np.array(y_hist)
     u_hist = np.array(u_hist)
 
+    y_out = np.array(y_out).reshape(sim.p, sim.nY)
+
+    ymk, xmk, umk = sim.pIniciais()
+
+    print(ymk[-4:])
+    print(y_hist[-1:])
+
     print(sim.setPoints(5))
 
     # === PLOT ===
-    t = np.arange(N_sim)
+    t = np.arange(1600)
+
+    print(f"{y_hist[:,0][-1]} - Pressão")
+    print(f"{y_hist[:,2][-1]} - Vazao")
 
     plt.figure(figsize=(16, 14))
 
-    plt.subplot(4, 1, 1)
-    plt.plot(t, u_hist[:, 0], label="wgl1 (Poço 1)")
-    plt.plot(t, u_hist[:, 1], label="wgl2 (Poço 2)")
+    plt.subplot(3, 1, 1)
+    # plt.plot(t, u_hist[:, 0], label="wgl1 (Poço 1)")
+    # plt.plot(t, u_hist[:, 1], label="wgl2 (Poço 2)")
+    plt.plot(t, umk[:,0], label="wgl1 (P inicais)")
+    plt.plot(t, umk[:,1], label="wgl2 (P inicais)")
     plt.ylabel("Injeção de gás [kg/s]")
     plt.title("Controles aplicados")
     plt.grid()
     plt.legend()
 
-    plt.subplot(4, 1, 2)
-    plt.plot(t, y_hist[:, 4], label="Óleo produzido Poço 1")
-    plt.plot(t, y_hist[:, 14], label="Óleo produzido Poço 2")
+    plt.subplot(3, 1, 2)
+    # plt.plot(t, y_out[:, 2], label="Óleo produzido Poço 1")
+    # plt.plot(t, y_out[:, 3], label="Óleo produzido Poço 2")
+    plt.plot(t, ymk[:,2], label="wgl1 (P inicais)")
+    plt.plot(t, ymk[:,3], label="wgl2 (P inicais)")
     plt.ylabel("Vazão [kg/s]")
     plt.title("Vazão de Óleo Produzido")
     plt.grid()
     plt.legend()
 
-    plt.subplot(4, 1, 3)
-    plt.plot(t, y_hist[:, 6], label="Pressão na cabeça Poço 1")
-    plt.plot(t, y_hist[:, 16], label="Pressão na cabeça Poço 2")
-    plt.ylabel("Pressão [Pa]")
-    plt.xlabel("Tempo [s]")
-    plt.title("Pressões na Cabeça dos Poços")
-    plt.grid()
-    plt.legend()
-
-    plt.subplot(4, 1, 4)
-    plt.plot(t, y_hist[:, 8], label="Pbh Poço 1 (Pressão de Fundo)")
-    plt.plot(t, y_hist[:, 18], label="Pbh Poço 2 (Pressão de Fundo)")
+    plt.subplot(3, 1, 3)
+    # plt.plot(t, y_out[:, 0], label="Pbh Poço 1 (Pressão de Fundo)")
+    # plt.plot(t, y_out[:, 1], label="Pbh Poço 2 (Pressão de Fundo)")
+    plt.plot(t, ymk[:,0], label="wgl1 (P inicais)")
+    plt.plot(t, ymk[:,1], label="wgl2 (P inicais)")
     plt.ylabel("Pressão [Pa]")
     plt.xlabel("Tempo [s]")
     plt.title("Pressão de Fundo dos Poços")
