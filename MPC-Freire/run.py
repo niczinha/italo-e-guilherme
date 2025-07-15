@@ -29,11 +29,11 @@ import pickle
         # 24: ro_r     - Densidade média do fluido no riser
         # 25: wrh      - Vazão total no riser (gás + óleo)
 
-Q = [1e-3,1e-3, 0, 0]
+Q = [1e-6,1e-6, 0, 0]
 R = [1,1]
 
 p, m, steps = 10, 3, 3
-NMPC = NMPC(p, m, steps, 4, 8, 2, Q, R, 10, 360)
+NMPC = NMPC(p, m, steps, 4, 8, 2, Q, R, 60, 120)
 iter, Ymk, Ypk, Upk, dU, Ysp, Tempos, dt = NMPC.run()
 
 # Salvando os resultados em um arquivo pickle

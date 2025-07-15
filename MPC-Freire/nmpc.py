@@ -25,7 +25,8 @@ class NMPC:
         self.sim_mf = sim.RiserModel(1, 1, steps, nY, nX, nU, dt)
         
         # Setpoints
-        self.SPList = [[9.5e6, 9.74e6, 0, 0], [9.16e6, 9.5e6, 0, 0]]
+        self.SPList = [[9.35e6, 9.7e6, 0, 0], [9.2e6, 9.55e6, 0, 0],
+                       [9.3e6, 9.65e6, 0, 0], [9.1e6, 9.45e6, 0, 0]]
         
         # Poço 1 min = 9.16e6 max = 9.52
         # Poço 2 min = 9.41e6 max = 9.74
@@ -36,8 +37,8 @@ class NMPC:
         # TODO: Adicionar restrições de entrada e estado
         self.u_min = np.array([[0.1], [0.1]])
         self.u_max = np.array([[5], [5]])
-        self.dU_min = np.array([[-1], [-1]])
-        self.dU_max = np.array([[1], [1]])
+        self.dU_min = np.array([[-0.5], [-0.5]])
+        self.dU_max = np.array([[0.5], [0.5]])
         self.y_min = np.array([[0] for _ in range(nY)])
         self.y_max = np.array([[np.inf] for _ in range(nY)])
     

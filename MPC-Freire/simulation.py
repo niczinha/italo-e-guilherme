@@ -309,16 +309,16 @@ class RiserModel:
         self.y = []
         init_x = x0[-self.nX:]  # Últimos estados iniciais
 
-        for j in range(1):
-            if j < 1:
-                self.u0.append(self.u0[-self.nU] + dU[self.nU*j])
-                self.u0.append(self.u0[-self.nU] + dU[self.nU*j+1])
-            par = np.array([self.u0[-self.nU], self.u0[-self.nU+1]])
-            outputs, init_x = self.f_modelo(init_x, par)
-            self.y.append(outputs.full().flatten())
-            self.x.append(init_x.full().flatten())
-            if j < 1:
-                self.u.append([self.u0[-self.nU], self.u0[-self.nU+1]])
+        self.u0.append(self.u0[-self.nU] + dU[0])
+        self.u0.append(self.u0[-self.nU] + dU[1])
+        par = np.array([self.u0[-self.nU], self.u0[-self.nU+1]])
+        outputs, init_x = self.f_modelo(init_x, par)
+        stds = np.array([5e3, 5e3, 0.01, 0.01])  # desvio padrão para cada saída
+        noise = np.random.normal(0, stds.reshape(-1, 1))
+        outputs += noise
+        self.y.append(outputs.full().flatten())
+        self.x.append(init_x.full().flatten())
+        self.u.append([self.u0[-self.nU], self.u0[-self.nU+1]])
             
         self.y = np.array(self.y).reshape(-1,1)
         self.x = np.array(self.x).reshape(-1,1)
