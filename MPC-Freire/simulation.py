@@ -2,6 +2,7 @@ import numpy as np
 import casadi as ca
 import matplotlib.pyplot as plt
 from scipy.optimize import fsolve
+from statsmodels.graphics.tsaplots import plot_acf, plot_ccf
 import os
 import time 
 
@@ -274,8 +275,8 @@ class RiserModel:
     def caPredFunction(self):
         # Modelo utilizado pelo controlador MPC
         # Retorna uma função casadi que retorna o trend já no tamanho de P pontos
-        x0 = ca.MX.sym('x0', self.nX*self.m, 1)  # Vetor de estados iniciais
-        u0 = ca.MX.sym('u0', self.nU*self.m, 1)  # Vetor de parâmetros de controle iniciais
+        x0 = ca.MX.sym('x0', self.nX, 1)  # Vetor de estados iniciais
+        u0 = ca.MX.sym('u0', self.nU, 1)  # Vetor de parâmetros de controle iniciais
         dU = ca.MX.sym('dU', self.nU*self.m, 1)  # Variação dos parâmetros de controle
 
         init_x = x0[-self.nX:]  # Últimos estados iniciais
@@ -313,7 +314,7 @@ class RiserModel:
         self.u0.append(self.u0[-self.nU] + dU[1])
         par = np.array([self.u0[-self.nU], self.u0[-self.nU+1]])
         outputs, init_x = self.f_modelo(init_x, par)
-        stds = np.array([5e3, 5e3, 0.01, 0.01])  # desvio padrão para cada saída
+        stds = np.array([5e3, 5e3, 0, 0])  # desvio padrão para cada saída
         noise = np.random.normal(0, stds.reshape(-1, 1))
         outputs += noise
         self.y.append(outputs.full().flatten())
@@ -346,9 +347,9 @@ class RiserModel:
             x.append(x0.full().flatten())
             u.append(u0[-2:])
 
-        y0 = np.array(y[-self.steps:]).reshape(-1,1) # [-self.steps:][-self.steps:]).reshape(-1,1).reshape(-1,1)
-        x0 = np.array(x[-self.steps:]).reshape(-1,1)#
-        u0 = np.array(u[-self.steps:]).reshape(-1,1)#
+        y0 = np.array(y[-1]).reshape(-1,1) # [-self.steps:][-self.steps:]).reshape(-1,1).reshape(-1,1)
+        x0 = np.array(x[-1]).reshape(-1,1)#
+        u0 = np.array(u[-1]).reshape(-1,1)#
 
         return y0, x0, u0
     
@@ -499,5 +500,32 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.savefig(os.path.join(imagesPath, "sim.png"))
     
+    n_lags = 99
 
+    # Plot Auto-correlation Function (ACF) for inputs and outputs
+    plt.figure(figsize=(18, 12))
+
+    plt.subplot(2, 2, 1)
+    plot_acf(ymk[:100, 0], lags=n_lags, title='ACF: Pbh1 (Output 1)', ax=plt.gca())
+    plt.xlabel(f'Lags (seconds, dt={5})')
+    plt.ylabel('Autocorrelation')
+
+    plt.subplot(2, 2, 2)
+    plot_acf(ymk[:100, 1], lags=n_lags, title='ACF: Pbh2 (Output 2)', ax=plt.gca())
+    plt.xlabel(f'Lags (seconds, dt={5})')
+    plt.ylabel('Autocorrelation')
+
+    plt.subplot(2, 2, 3)
+    plot_acf(ymk[:100, 2], lags=n_lags, title='ACF: wpo1_prod (Output 3)', ax=plt.gca())
+    plt.xlabel(f'Lags (seconds, dt={5})')
+    plt.ylabel('Autocorrelation')
+
+    plt.subplot(2, 2, 4)
+    plot_acf(ymk[:100, 3], lags=n_lags, title='ACF: wpo2_prod (Output 4)', ax=plt.gca())
+    plt.xlabel(f'Lags (seconds, dt={5})')
+    plt.ylabel('Autocorrelation')
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(imagesPath, "acf_plots.png"))
+    plt.show()
 

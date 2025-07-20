@@ -1,6 +1,7 @@
 import numpy as np
 import casadi as ca
 import simulation as sim
+from filtroKalman import EKF
 import time
 
 class NMPC:
@@ -39,8 +40,8 @@ class NMPC:
         self.u_max = np.array([[5], [5]])
         self.dU_min = np.array([[-0.5], [-0.5]])
         self.dU_max = np.array([[0.5], [0.5]])
-        self.y_min = np.array([[0] for _ in range(nY)])
-        self.y_max = np.array([[np.inf] for _ in range(nY)])
+        self.y_min = np.array([[9.11e6], [9.46e6], [0], [0]])
+        self.y_max = np.array([[9.52e6], [9.74e6], [50], [50]])
     
     def iTil(self, n, x):
         n = np.tile(n,(x,1))
@@ -90,9 +91,9 @@ class NMPC:
         # Definição das variáveis de decisão
         dUs = opti.variable(self.nU * self.m, 1)
         Fs  = opti.variable(1, 1)  # Variável escalar para Fs
-        yModelk = opti.parameter(self.nY * self.steps, 1)
-        xModelk = opti.parameter(self.nX * self.steps, 1)  # xModelk como parâmetro
-        uModelk = opti.parameter(self.nU * self.steps, 1)
+        yModelk = opti.parameter(self.nY, 1)
+        xModelk = opti.parameter(self.nX, 1)  # xModelk como parâmetro
+        uModelk = opti.parameter(self.nU, 1)
         yPlantak = opti.parameter(self.nY, 1)
         ysp = opti.parameter(self.nY * self.p, 1)# yPlantak como parâmetro 
     
@@ -118,7 +119,7 @@ class NMPC:
 
         # lbg e ubg
         opti.subject_to(opti.bounded(self.y_min, yModel_pred + dYk, self.y_max))
-        opti.subject_to(opti.bounded(self.u_min, ca.repmat(uModelk[-self.nU:], self.m, 1) + matriz_inferior @ dUs, self.u_max))
+        opti.subject_to(opti.bounded(self.u_min, ca.repmat(uModelk, self.m, 1) + matriz_inferior @ dUs, self.u_max))
         opti.subject_to(Fs - ((yModel_pred - ysp + dYk).T @ self.Q @ (yModel_pred - ysp + dYk) + dUs.T @ self.R @ dUs) == 0)  # Restrições de igualdade
 
         opti.solver('ipopt', {
@@ -182,6 +183,7 @@ class NMPC:
         for i in range(self.iter): 
             t1 = time.time()
             print(15*'='+ f'Iteração {i+1}' + 15*'=')
+
             # Otimização e predição dos passos de controle
             dU_opt = self.otimizar(ymk, xmk, umk, ypk)
             
@@ -189,7 +191,7 @@ class NMPC:
             self.dU = dU_opt
             
             # Aplica o primeiro passo de controle nas entradas
-            umk = umk.reshape(self.steps*self.nU, 1)
+            umk = umk.reshape(self.nU, 1)
             umk = np.append(umk, umk[-self.nU:] + self.dUk)
             umk = umk[self.nU:]
 
@@ -209,17 +211,12 @@ class NMPC:
             # Diferença entre a simulação da planta e modelo
             print('dYk: ',ymk_next - ypk)
             
-            # Atualizações de variáveis para o próximo loop
-            upk = upk.flatten()
-            xpk = xpk.flatten()
-            ypk = ypk.flatten()
-            
             ymk = np.append(ymk, ymk_next)
-            ymk = ymk[self.nY:]
+            ymk = ymk[self.nY:].reshape(-1, 1)
             xmk = np.append(xmk, xmk_next)
-            xmk = xmk[self.nX:]
+            xmk = xmk[self.nX:].reshape(-1, 1)
             umk = np.append(umk, umk_next)
-            umk = umk[self.nU:]
+            umk = umk[self.nU:].reshape(-1, 1)
 
             # Variáveis para visualização
             Ymk_forPrint.append(ymk_next.copy())
