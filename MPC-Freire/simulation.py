@@ -46,7 +46,6 @@ Ta1 = 301 # Temperatura da região anular [K]
 PI1 = 0.7e-5 # Índice de Produtividade [kg/(s·Pa)]
 Cpc1 = 2e-3 # Coeficiente da choke de produção [m²]
 Civ1 = 0.1e-3 # Coeficiente da válvula de injeção [m²]
-Pr1 = 1.50e7 # Pressão no reservatório [Pa]
 Lr_poco1 = 500 # Distância do reservatório até o ponto de injeção 
 GOR1 = 0.08 # Razão Gás-Óleo [kg/kg] 39
 
@@ -78,7 +77,6 @@ Ta2 = 301
 PI2 = 0.7e-5 # Pode ser diferente, exemplo: 0.23e-5
 Cpc2 = 2e-3
 Civ2 = 0.1e-3
-Pr2 = 1.55e7 # Diferente do poço 1
 Lr_poco2 = 500
 GOR2 = 0.1 # Diferente do poço 1
 
@@ -114,6 +112,9 @@ class RiserModel:
         self.x = []
         self.u = []
 
+        self.Pr1 = 1.50e7
+        self.Pr2 = 1.55e7
+
         # Injeção inicial para simulação do sistema
         self.injInit = 3
         self.u0 = [self.injInit]*self.m*self.nU
@@ -121,7 +122,7 @@ class RiserModel:
         self.f_modelo = self.createModelo()
         self.caPredFun = self.caPredFunction()
     
-    def fun(self, x, par):
+    def fun(self, x, par, pr):
         # x[0]: m_ga1 (massa de gás no anular do poço 1)
         # x[1]: m_ga2 (massa de gás no anular do poço 2)
         # x[2]: m_gt1 (massa de gás no tubo do poço 1)
@@ -142,7 +143,7 @@ class RiserModel:
         Pbh1 = Pwi1 + (ro_w1 * g * Hbh1) + dp_fric_bh1
         ro_a1 = (M * Pai1) / (R * Ta)
         wiv1 = Civ1 * ca.sqrt(ca.fmax(0, ro_a1 * (Pai1 - Pwi1)))
-        wro1 = PI1 * (Pr1 - Pbh1)
+        wro1 = PI1 * (pr[0] - Pbh1)
         wrg1 = GOR1 * wro1
     
         Pai2 = ((R * Ta2 / (Va2 * M)) + ((g * La2) / (La2 * Aa2))) * x[1]
@@ -154,7 +155,7 @@ class RiserModel:
         Pbh2 = Pwi2 + (ro_w2 * g * Hbh2) + dp_fric_bh2
 
         wiv2 = Civ2 * ca.sqrt(ca.fmax(0, ro_a2 * (Pai2 - Pwi2)))
-        wro2 = PI2 * (Pr2 - Pbh2)
+        wro2 = PI2 * (pr[1] - Pbh2)
         wrg2 = GOR2 * wro2
 
         ro_r = (x[6] + x[7]) / (Lr_comum * Ar_comum)
@@ -202,16 +203,19 @@ class RiserModel:
         
         x = ca.MX.sym('x', 8)  # 8 estados do sistema
         par = ca.MX.sym('par', 2)  # 2 parâmetros
+        pr = ca.MX.sym('pr', 2)  # Parâmetro adicional, se necessário
         t = ca.MX.sym('t')
 
-        # Integração
-        rhs = self.fun(x, par)
+        p_all = ca.vertcat(par,pr)
 
-        dae = {'x': x, 'p': par, 'ode': rhs}
+        # Integração
+        rhs = self.fun(x, par, pr)
+
+        dae = {'x': x, 'p': p_all, 'ode': rhs}
         opts = {'tf': self.dt}
         integrator = ca.integrator('integrator', 'rk', dae, opts)
 
-        res = integrator(x0=x, p=par)
+        res = integrator(x0=x, p=p_all)
         x_new = res['xf']
 
         wgl1, wgl2 = par[0], par[1]
@@ -224,7 +228,7 @@ class RiserModel:
         Pbh1 = Pwi1 + (ro_w1 * g * Hbh1) + dp_fric_bh1
         ro_a1 = (M * Pai1) / (R * Ta)
         wiv1 = Civ1 * ca.sqrt(ca.fmax(0, ro_a1 * (Pai1 - Pwi1)))
-        wro1 = PI1 * (Pr1 - Pbh1)
+        wro1 = PI1 * (pr[0] - Pbh1)
         wrg1 = GOR1 * wro1
     
         Pai2 = ((R * Ta2 / (Va2 * M)) + ((g * La2) / (La2 * Aa2))) * x[1]
@@ -236,7 +240,7 @@ class RiserModel:
         Pbh2 = Pwi2 + (ro_w2 * g * Hbh2) + dp_fric_bh2
 
         wiv2 = Civ2 * ca.sqrt(ca.fmax(0, ro_a2 * (Pai2 - Pwi2)))
-        wro2 = PI2 * (Pr2 - Pbh2)
+        wro2 = PI2 * (pr[1] - Pbh2)
         wrg2 = GOR2 * wro2
 
         # --- Cálculos para o Riser Comum ---
@@ -270,7 +274,7 @@ class RiserModel:
         # E precisava diminuir o tempo de cálculo das Hessianas
         outputs = ca.vertcat(Pbh1, Pbh2, wpo1_prod, wpo2_prod)
 
-        return ca.Function('f_modelo', [x, par], [outputs, x_new], ['x', 'par'], ['outputs', 'x_new'])
+        return ca.Function('f_modelo', [x, par, pr], [outputs, x_new], ['x', 'par', 'pr'], ['outputs', 'x_new'])
     
     def caPredFunction(self):
         # Modelo utilizado pelo controlador MPC
@@ -292,7 +296,7 @@ class RiserModel:
                 u0_curr = ca.vertcat(u0_curr, u0_curr[-self.nU] + dU[self.nU*j+1])
                 u0_curr = u0_curr[self.nU:]
             par = ca.vertcat(u0_curr[-self.nU], u0_curr[-self.nU+1])
-            outputs, init_x = self.f_modelo(init_x, par)
+            outputs, init_x = self.f_modelo(init_x, par, [self.Pr1, self.Pr2])
             y = ca.vertcat(y, outputs)
             x = ca.vertcat(x, init_x)
             if j < self.m:
@@ -302,7 +306,7 @@ class RiserModel:
 
         return out_trend
     
-    def pPlanta(self, x0, dU):
+    def pPlanta(self, x0, dU, iter):
         # Modelo da planta 
         # é importante colocar uma perturbação na planta 
         # para evitar ser um controlador nominal
@@ -313,10 +317,11 @@ class RiserModel:
         self.u0.append(self.u0[-self.nU] + dU[0])
         self.u0.append(self.u0[-self.nU] + dU[1])
         par = np.array([self.u0[-self.nU], self.u0[-self.nU+1]])
-        outputs, init_x = self.f_modelo(init_x, par)
-        stds = np.array([5e3, 5e3, 0, 0])  # desvio padrão para cada saída
-        noise = np.random.normal(0, stds.reshape(-1, 1))
-        outputs += noise
+        self.Pr1 = 1.50e7 + np.random.uniform(-0.5, 0.5) * 1e5
+        self.Pr2 = 1.55e7 + np.random.uniform(-0.5, 0.5) * 1e5
+
+        outputs, init_x = self.f_modelo(init_x, par, [self.Pr1, self.Pr2])
+        
         self.y.append(outputs.full().flatten())
         self.x.append(init_x.full().flatten())
         self.u.append([self.u0[-self.nU], self.u0[-self.nU+1]])
@@ -342,7 +347,7 @@ class RiserModel:
         t = np.arange(t0, tf, dt)
 
         for ti in t:
-            y0, x0 = self.f_modelo(x0, u0[-2:])
+            y0, x0 = self.f_modelo(x0, u0[-2:], [self.Pr1, self.Pr2])
             y.append(y0.full().flatten())
             x.append(x0.full().flatten())
             u.append(u0[-2:])

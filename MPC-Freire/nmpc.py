@@ -206,7 +206,7 @@ class NMPC:
             print(f'Tempo decorrido: {t2-t1}')
             
             # Simulação de apenas 1 passo pela planta
-            ypk, xpk, upk = self.sim_mf.pPlanta(xpk, self.dUk)
+            ypk, xpk, upk = self.sim_mf.pPlanta(xpk, self.dUk, i)
 
             # Diferença entre a simulação da planta e modelo
             print('dYk: ',ymk_next - ypk)
