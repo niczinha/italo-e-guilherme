@@ -317,8 +317,8 @@ class RiserModel:
         self.u0.append(self.u0[-self.nU] + dU[0])
         self.u0.append(self.u0[-self.nU] + dU[1])
         par = np.array([self.u0[-self.nU], self.u0[-self.nU+1]])
-        self.Pr1 = 1.50e7 + np.random.uniform(-0.5, 0.5) * 1e5
-        self.Pr2 = 1.55e7 + np.random.uniform(-0.5, 0.5) * 1e5
+        self.Pr1 = 1.50e7 + np.random.uniform(-0.1, 0.1) * 1e5
+        self.Pr2 = 1.55e7 + np.random.uniform(-0.1, 0.1) * 1e5
 
         outputs, init_x = self.f_modelo(init_x, par, [self.Pr1, self.Pr2])
         
